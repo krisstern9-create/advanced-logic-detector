@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+env/
+venv.bak/
+env.bak/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Large files
+*.dll
+*.lib
+*.bin
+*.model
+*.pt
+*.ckpt
+*.dll
+*.exe
+
+# Data files
+*.csv
+*.json
+*.txt
+*.log
+*.data
+
+# Logs
+*.log
+
+# Build
+build/
+dist/
+*.egg-info/
