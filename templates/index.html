@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Logic Contradiction Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Advanced Logic Contradiction Detector</h1>
+        <p class="subtitle">Анализатор рациональности и логической согласованности текста. Обнаруживает эмоциональные маркеры и логические противоречия.</p>
+        
+        <div id="model-status"></div>
+        
+        <textarea id="text" placeholder="Введите текст для анализа (минимум 10 символов)...">This method always works perfectly. However, sometimes it fails completely. The results are absolutely certain, but there is some doubt about the outcome.</textarea>
+        
+        <button id="analyze-btn" onclick="analyzeText()">Анализировать текст</button>
+        
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>⏳ Анализ текста...<br><small>Первый запуск может занять 1-2 минуты (загрузка ИИ-модели)</small></p>
+        </div>
+        
+        <div id="result"></div>
+        
+        <footer>
+            <p>Advanced Logic Contradiction Detector &copy; 2026 | Автор: Kris Stern</p>
+            <p>Инструмент для эволюции человеческого сознания</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Check model status on page load
+        window.onload = function() {
+            checkModelStatus();
+        };
+        
+        function checkModelStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('model-status');
+                    if (!data.models_loaded) {
+                        statusDiv.innerHTML = `
+                            <div class="status-loading">
+                                ⚠️ Модели ИИ загружаются в фоновом режиме...
+                                <br>Первый анализ может занять 1-2 минуты.
+                            </div>
+                        `;
+                        document.getElementById('analyze-btn').disabled = false;
+                    } else {
+                        statusDiv.innerHTML = '';
+                        document.getElementById('analyze-btn').disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking status:', error);
+                });
+        }
+        
+        async function analyzeText() {
+            const text = document.getElementById('text').value.trim();
+            const analyzeBtn = document.getElementById('analyze-btn');
+            
+            if (text.length < 10) {
+                alert('Текст должен содержать минимум 10 символов');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').innerHTML = '';
+            analyzeBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'loading') {
+                    document.getElementById('result').innerHTML = `
+                        <div class="error">
+                            Модели ИИ ещё загружаются. Пожалуйста, подождите 1-2 минуты и попробуйте снова.
+                        </div>
+                    `;
+                } else if (data.error) {
+                    document.getElementById('result').innerHTML = `
+                        <div class="error">
+                            Ошибка: ${data.error}
+                        </div>
+                    `;
+                } else {
+                    displayResult(data);
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="error">
+                        Ошибка подключения к серверу: ${error.message}<br>
+                        Убедитесь, что сервер запущен (python app.py)
+                    </div>
+                `;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        }
+        
+        function displayResult(data) {
+            // Overall score badge
+            let qualityClass = '';
+            switch(data.overall.quality_level) {
+                case 'excellent': qualityClass = 'quality-excellent'; break;
+                case 'very_good': qualityClass = 'quality-very_good'; break;
+                case 'good': qualityClass = 'quality-good'; break;
+                case 'acceptable': qualityClass = 'quality-acceptable'; break;
+                case 'moderate': qualityClass = 'quality-moderate'; break;
+                case 'poor': qualityClass = 'quality-poor'; break;
+                case 'very_poor': qualityClass = 'quality-very_poor'; break;
+                case 'critical': qualityClass = 'quality-critical'; break;
+                default: qualityClass = 'quality-moderate';
+            }
+            
+            const qualityText = {
+                'excellent': 'Отлично',
+                'very_good': 'Очень хорошо',
+                'good': 'Хорошо',
+                'acceptable': 'Удовлетворительно',
+                'moderate': 'Средне',
+                'poor': 'Плохо',
+                'very_poor': 'Очень плохо',
+                'critical': 'Критично'
+            };
+            
+            const html = `
+                <div class="score-box">
+                    <h2>📊 Итоговая оценка качества мышления</h2>
+                    <div class="score">${data.overall.score}%</div>
+                    <div class="quality-badge ${qualityClass}">
+                        ${qualityText[data.overall.quality_level] || data.overall.quality_level}
+                    </div>
+                    <p style="margin-top: 15px; font-size: 1.2rem;">${data.overall.recommendation}</p>
+                    <small style="display: block; margin-top: 10px; color: #777;">
+                        Время анализа: ${data.overall.processing_time} сек
+                    </small>
+                </div>
+                
+                <div class="section">
+                    <h3>🧠 Рациональность текста</h3>
+                    <div class="score">${data.rationality.score}%</div>
+                    <p style="margin: 15px 0; font-size: 1.1rem;">${data.rationality.analysis}</p>
+                    <ul style="margin-top: 15px; padding-left: 20px;">
+                        <li>Эмоциональные маркеры: ${data.rationality.emotional_markers}</li>
+                        <li>Логические связки: ${data.rationality.logical_connectors}</li>
+                        <li>Научные термины: ${data.rationality.scientific_terms}</li>
+                    </ul>
+                </div>
+                
+                <div class="section">
+                    <h3>🎯 Логическая согласованность</h3>
+                    <div class="score">${data.logic.score}%</div>
+                    <p style="margin: 15px 0; font-size: 1.1rem;">${data.logic.recommendation}</p>
+                    <p><strong>Найдено противоречий:</strong> ${data.logic.total_contradictions}</p>
+                    
+                    ${Object.keys(data.logic.by_type).length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <strong>Распределение по типам:</strong>
+                            <ul style="padding-left: 20px; margin-top: 8px;">
+                                ${Object.entries(data.logic.by_type).map(([type, info]) => `
+                                    <li>${getContradictionType(type)}: ${info.count} 
+                                        ${info.examples && info.examples.length ? `(пример: "${info.examples[0].sentence}...")` : ''}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                ${data.logic.contradictions && data.logic.contradictions.length > 0 ? `
+                    <div class="contradictions">
+                        <h3 style="color: #ff4d4d; margin-bottom: 20px;">⚠️ Детали найденных противоречий</h3>
+                        ${data.logic.contradictions.map(c => `
+                            <div class="contradiction ${c.severity}">
+                                <strong>Тип:</strong> ${getContradictionType(c.type)}<br>
+                                ${c.sentence ? `<strong>Предложение:</strong> "${c.sentence}"<br>` : ''}
+                                ${c.context ? `<strong>Контекст:</strong> "${c.context}"<br>` : ''}
+                                ${c.keyword ? `<strong>Ключевое слово:</strong> "${c.keyword}"<br>` : ''}
+                                ${c.matched_words ? `<strong>Противоречащие слова:</strong> "${c.matched_words[0]}" vs "${c.matched_words[1]}"<br>` : ''}
+                                <small>Уверенность: ${(c.confidence * 100).toFixed(0)}% | Серьёзность: ${c.severity}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="section" style="background: rgba(26, 42, 33, 0.9); border-left-color: #4dff4d;">
+                        <h3 style="color: #4dff4d;">✅ Противоречия не найдены</h3>
+                        <p>Текст логически согласован. Поздравляем!</p>
+                    </div>
+                `}
+            `;
+            
+            document.getElementById('result').innerHTML = html;
+            
+            // Scroll to results
+            document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function getContradictionType(type) {
+            const types = {
+                'direct_contradiction': 'Прямое противоречие',
+                'self_contradiction': 'Самопротиворечие',
+                'hidden_contradiction': 'Скрытое противоречие',
+                'semantic_contradiction': 'Семантическое противоречие',
+                'temporal_contradiction': 'Временное противоречие',
+                'quantitative_contradiction': 'Количественное противоречие'
+            };
+            return types[type] || type.replace(/_/g, ' ');
+        }
+    </script>
+</body>
+</html>
